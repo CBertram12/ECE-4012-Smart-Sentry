@@ -18,6 +18,8 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.VideoView;
 
+import com.squareup.picasso.Picasso;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -25,10 +27,10 @@ import java.net.UnknownHostException;
 
 public class MainActivity extends AppCompatActivity {
     // initialize socket and input output streams
-    private Socket socket            = null;
-    private DataOutputStream out     = null;
-    private String sendData          = "";
-    private boolean clicked          = false;
+    private Socket socket = null;
+    private DataOutputStream out = null;
+    private String sendData = "";
+    private boolean clicked = false;
     NotificationCompat.Builder builder;
     NotificationManagerCompat notificationManager;
     Thread clientThread = null;
@@ -41,9 +43,9 @@ public class MainActivity extends AppCompatActivity {
 
         initButtons();
 
-        VideoView vidView = (VideoView)findViewById(R.id.myVideo);
+        VideoView vidView = (VideoView) findViewById(R.id.myVideo);
 
-        String vidAddress = "https://archive.org/download/ksnn_compilation_master_the_internet/ksnn_compilation_master_the_internet_512kb.mp4";
+        String vidAddress = "192.168.0.22:8090";
         Uri vidUri = Uri.parse(vidAddress);
 
         vidView.setVideoURI(vidUri);
@@ -53,23 +55,28 @@ public class MainActivity extends AppCompatActivity {
 
         notificationManager = NotificationManagerCompat.from(this);
 
+        buildNotification();
+
+        this.clientThread = new Thread(new ClientThread());
+        this.clientThread.start();
+
+    }
+
+    private void buildNotification() {
         // Create an explicit intent for an Activity in your app
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent intent = new Intent(this, Map_View.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
         builder = new NotificationCompat.Builder(this, "Channel 1")
                 .setSmallIcon(R.drawable.ic_stat_name)
-                .setContentTitle("My notification")
-                .setContentText("Hello World!")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentTitle("Motion Detected!")
+                .setContentText("Click here to view what set off the notification.")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 // Set the intent that will fire when the user taps the notification
                 .setContentIntent(pendingIntent)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setAutoCancel(true);
-
-        this.clientThread = new Thread(new ClientThread());
-        this.clientThread.start();
-
     }
 
     private void createNotificationChannel() {
@@ -120,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
         b4.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendData = "DOWN";
+                sendData = "Over";
                 clicked = true;
                 notificationManager.notify(notification_id++, builder.build());
             }
@@ -130,6 +137,8 @@ public class MainActivity extends AppCompatActivity {
         b5.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                sendData = "Over";
+                clicked = true;
                 openMap();
             }
         });
@@ -145,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             // establish a connection
             try {
-                socket = new Socket("192.168.174.1", 5000);
+                socket = new Socket("192.168.0.22", 5000);
 
                 // sends put to the socket
                 out = new DataOutputStream(socket.getOutputStream());
